@@ -1,0 +1,220 @@
+-- creating employee table
+CREATE TABLE Employee (
+id INT PRIMARY KEY AUTO_INCREMENT,
+emp_name VARCHAR(30) NOT NULL,
+salary VARCHAR(30) NOT NULL,
+supervisor INT,
+dept_id INT,
+manages_dept INT,
+FOREIGN KEY (supervisor) REFERENCES Employee(id),
+FOREIGN KEY (dept_id) REFERENCES Department(id),
+FOREIGN KEY (manages_dept) REFERENCES Department(id)
+)
+
+
+-- creating department table
+CREATE TABLE Department (
+id INT PRIMARY KEY AUTO_INCREMENT,
+dept_name VARCHAR(30) NOT NULL
+)
+
+
+
+
+-- creating projects table
+CREATE TABLE Projects (
+id INT PRIMARY KEY AUTO_INCREMENT,
+project_name VARCHAR(30) NOT NULL,
+controlled_by INT,
+FOREIGN KEY (controlled_by) REFERENCES Department(id)
+)
+
+
+-- creating works table
+CREATE TABLE Works (
+
+emp_id INT NOT NULL,
+project_id INT NOT nULL,
+PRIMARY KEY (emp_id , project_id),
+FOREIGN KEY (emp_id) REFERENCES Employee(id),
+FOREIGN KEY (project_id) REFERENCES Projects(id)
+)
+
+
+-- creating insert employee stored procedure
+DELIMITER //
+create procedure insertEmp (IN emp_name VARCHAR(30), IN salary VARCHAR(30), IN supervisor INT, IN dept_id INT, IN manages_dept INT)
+BEGIN
+START TRANSACTION;
+INSERT into Employee (emp_name, salary, supervisor, dept_id, manages_dept) VALUES(emp_name, salary, supervisor, dept_id, manages_dept);
+COMMIT;
+END //
+
+DELIMITER;
+select * from Employee
+select * from Department
+CALL insertEmp('Shishir', 60000, 1, 1,1)
+CALL insertEmp('Ramesh', 60000, 1, 1, NULL)
+CALL insertEmp('Aakriti', 60000, 1, 1, NULL)
+CALL insertEmp('Bigyan', 60000, 1, 1, NULL)
+CALL insertEmp('Akash', 60000, 3, 2, 2)
+CALL insertEmp('Pratik', 30000, 1, 1, NULL)
+
+
+-- creating insert department stored procedure
+DELIMITER //
+create procedure insertDept (IN dept_name VARCHAR(30))
+BEGIN
+START TRANSACTION;
+INSERT into Department (dept_name) VALUES(dept_name);
+COMMIT;
+END //
+
+DELIMITER;
+
+
+-- inserting departments
+CALL insertDept('CSIT');
+CALL insertDept('Account');
+CALL insertDept('HR');
+
+-- creating insert projects stored procedure
+DELIMITER //
+create procedure insertProj (IN project_name VARCHAR(30), IN controlled_by INT)
+BEGIN
+START TRANSACTION;
+INSERT into Projects (project_name, controlled_by) VALUES(project_name, controlled_by);
+COMMIT;
+END //
+
+DELIMITER;
+
+-- inserting projects
+CALL insertProj('Apple',1);
+CALL insertProj('Samsung',1);
+CALL insertProj('Prabhu',2);
+CALL insertProj('Apple','Apple');
+
+
+
+
+select * from Employee;
+select * from Department;
+select * from Projects;
+select * from works;
+
+-- creating storeselect * from Works;
+-- procedure for works table
+DELIMITER //
+create procedure insertWorks (IN emp_id INT, IN project_id INT)
+BEGIN
+START TRANSACTION;
+INSERT into Works (emp_id, project_id) VALUES(emp_id, project_id);
+COMMIT;
+END //
+
+DELIMITER;
+
+CALL insertWorks(1,2);
+select * from works;
+
+DELIMITER $$
+CREATE FUNCTION Func_Convert_Temp
+(
+ Temp_Farh FLOAT
+)
+RETURNS FLOAT 
+DETERMINISTIC
+BEGIN
+    DECLARE Temp_Celcius FLOAT;
+    SET Temp_Celcius = (Temp_Farh-32)*(5/9);
+    RETURN Temp_Celcius; 
+END$$
+DELIMITER ;
+
+SELECT Func_Convert_Temp(75.6);
+
+DELIMITER $$
+CREATE FUNCTION Func_Concat_Str
+(
+ str1 VARCHAR(40),
+ str2 VARCHAR(40) 
+)
+RETURNS VARCHAR(40) 
+DETERMINISTIC
+BEGIN
+    RETURN CONCAT(str1, str2);
+END$$
+DELIMITER ;
+
+SELECT Func_Concat_Str('shaun','pant');
+
+-- creating stored procedure to display list of employees who work in CSIT
+DELIMITER //
+create procedure displayCSIT ()
+BEGIN
+SELECT emp_name FROM Employee WHERE dept_id IN ( SELECT id FROM Department WHERE dept_name = 'CSIT' );
+END //
+
+DELIMITER;
+
+CALL displayCSIT();
+
+-- creating stored procedure to display Count of employess department wise 
+DELIMITER //
+CREATE PROCEDURE displayCount ()
+BEGIN
+SELECT dept_name AS 'Department Name', 
+COUNT(*) AS 'No of Employees' 
+FROM Department 
+INNER JOIN Employee
+ON employee.dept_id = department.id 
+GROUP BY department.id, dept_name 
+ORDER BY dept_name;
+END //
+
+DELIMITER;
+
+CALL displayCount();
+
+
+
+
+-- SELECT dept_id, COUNT(*) FROM Employee GROUP BY dept_id 
+
+
+-- syntax of handler
+-- DECLARE handler_action HANDLER FOR condition_value ... statement
+-- Exception handling in stored procedure
+-- if it detects duplicate entry it displays the message and EXITs
+DELIMITER //
+create procedure insertWorks_Projs (IN emp_id INT, IN project_id INT)
+BEGIN
+DECLARE EXIT HANDLER FOR 1062 SELECT 'SORRY DUPLICATE DETECTED' AS message;
+INSERT into Works (emp_id, project_id) VALUES(emp_id, project_id);
+SELECT * FROM Works;
+END //
+
+DELIMITER;
+CALL insertWorks_Projs(1,1);
+
+
+select * from Employee;
+select * from Department;
+select * from Projects;
+select * from Works;
+
+-- Triggers
+
+
+delimiter // 
+CREATE TRIGGER salarycheck BEFORE INSERT ON Employee FOR EACH ROW IF NEW.salary < 20000 
+THEN SET NEW.salary = 25000; END IF;// 
+
+CALL insertEmp('Shaun', 12000, 1, 1, NULL);
+
+DELIMITER;
+select * from Employee;
+select * from Department;
+select * from Projects;
+select * from Works;
